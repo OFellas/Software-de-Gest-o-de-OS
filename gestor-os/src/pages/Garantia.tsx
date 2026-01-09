@@ -1,33 +1,86 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { OS } from "../types/OS";
 
+const STORAGE_KEY = "os_list";
+
+function loadOS(): OS[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveOS(list: OS[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
 export default function Garantia() {
   const navigate = useNavigate();
-  const lista: OS[] = JSON.parse(localStorage.getItem("os_list") || "[]");
+  const [lista, setLista] = useState<OS[]>([]);
 
-  const garantia = lista.filter(o => o.status === "Em garantia");
+  useEffect(() => {
+    atualizar();
+  }, []);
+
+  function atualizar() {
+    const todas = loadOS();
+    setLista(
+      todas.filter(os => os.garantiaStatus === "EM_GARANTIA")
+    );
+  }
+
+  function marcarRetorno(os: OS) {
+    const atualizadas = loadOS().map(o =>
+      o.numero === os.numero
+        ? { ...o, garantiaStatus: "AGUARDANDO_RETIRADA" }
+        : o
+    );
+
+    saveOS(atualizadas);
+    atualizar();
+    navigate("/aguardando-retirada");
+  }
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">OS em garantia</h1>
+    <div className="p-6 max-w-3xl space-y-4">
+      <h1 className="text-xl font-bold">Em Garantia</h1>
 
-      {garantia.map(o => (
-        <div key={o.id} className="border p-4 rounded bg-yellow-50 space-y-1">
-          <p><strong>OS {o.numero}</strong></p>
-          <p>Cliente: {o.cliente}</p>
-          <p>NF-e: {o.garantia?.nfe}</p>
-          <button
-            onClick={() => navigate(`/os/${o.id}`)}
-            className="border px-3 py-1 rounded"
-          >
-            Abrir OS
-          </button>
+      {lista.length === 0 && (
+        <p className="text-gray-500">
+          Nenhuma OS em garantia
+        </p>
+      )}
+
+      {lista.map(os => (
+        <div
+          key={os.numero}
+          className="border p-4 rounded space-y-2"
+        >
+          <p className="font-semibold">
+            OS {os.numero} — {os.cliente}
+          </p>
+
+          <div className="text-sm">
+            <p><b>Empresa / RMA:</b> {os.empresaRMA}</p>
+            <p><b>NF-e:</b> {os.nfNumero}</p>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              className="bg-orange-600 text-white px-3 py-1 rounded"
+              onClick={() => marcarRetorno(os)}
+            >
+              Marcar Retorno
+            </button>
+
+            <button
+              className="bg-gray-300 px-3 py-1 rounded"
+              onClick={() => navigate(-1)}
+            >
+              Voltar
+            </button>
+          </div>
         </div>
       ))}
-
-      <button onClick={() => navigate("/")} className="border px-4 py-2 rounded">
-        Voltar
-      </button>
     </div>
   );
 }

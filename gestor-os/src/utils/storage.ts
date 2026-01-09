@@ -1,4 +1,4 @@
-import { OS } from "../types/OS";
+import type { OS } from "../types/OS";
 
 const STORAGE_KEY = "os_list";
 
@@ -7,6 +7,8 @@ export function loadOS(): OS[] {
   return data ? JSON.parse(data) : [];
 }
 
+  
 export function saveOS(list: OS[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
+

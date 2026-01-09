@@ -1,155 +1,148 @@
-import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import type { OS } from "../types/OS";
 
+const STORAGE_KEY = "os_list";
+
+function loadOS(): OS[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveOS(list: OS[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function normalizar(v?: string) {
+  return (v || "").trim();
+}
+
 export default function DetalheOS() {
-  const { id } = useParams();
+  const { numero } = useParams<{ numero: string }>();
   const navigate = useNavigate();
-
-  const [os, setOs] = useState<OS | null>(null);
-  const [editando, setEditando] = useState(false);
-  const [modoGarantia, setModoGarantia] = useState<"envio" | "retorno" | null>(null);
-
-  const [nfe, setNfe] = useState("");
-  const [dataEnvio, setDataEnvio] = useState("");
-  const [dataRetorno, setDataRetorno] = useState("");
+  const [os, setOS] = useState<OS | null>(null);
 
   useEffect(() => {
-    const lista: OS[] = JSON.parse(localStorage.getItem("os_list") || "[]");
-    const encontrada = lista.find(o => o.id === Number(id));
-    if (encontrada) {
-      setOs(encontrada);
-      setNfe(encontrada.garantia?.nfe || "");
-    }
-  }, [id]);
+    const lista = loadOS();
+    const encontrada = lista.find(
+      o => normalizar(o.numero) === normalizar(numero)
+    );
 
-  if (!os) return <p className="p-6">OS não encontrada.</p>;
-
-  function salvarLista(atualizada: OS[]) {
-    localStorage.setItem("os_list", JSON.stringify(atualizada));
-  }
-
-  function salvarAlteracoes() {
-    const lista: OS[] = JSON.parse(localStorage.getItem("os_list") || "[]");
-    salvarLista(lista.map(o => (o.id === os.id ? os : o)));
-    setEditando(false);
-  }
-
-  function enviarGarantia() {
-    if (!nfe || !dataEnvio) {
-      alert("Informe NF-e e data de envio.");
+    if (!encontrada) {
+      alert("OS não encontrada");
+      navigate("/");
       return;
     }
 
-    setOs({
-      ...os,
-      status: "Em garantia",
-      garantia: {
-        nfe,
-        dataEnvio,
-      },
-    });
+    setOS(encontrada);
+  }, [numero, navigate]);
 
-    setModoGarantia(null);
-  }
+  function concluirOS() {
+    if (!os) return;
 
-  function retornoGarantia() {
-    if (!dataRetorno || !os.garantia) {
-      alert("Informe a data de retorno.");
-      return;
-    }
+    const lista = loadOS().map(o =>
+      o.numero === os.numero
+        ? {
+            ...o,
+            status: "CONCLUIDA",
+            dataConclusao: new Date().toISOString(),
+          }
+        : o
+    );
 
-    setOs({
-      ...os,
-      status: "Aguardando retirada",
-      garantia: {
-        ...os.garantia,
-        dataRetorno,
-      },
-    });
-
-    setModoGarantia(null);
-  }
-
-  function apagarOS() {
-    if (!confirm("Deseja realmente apagar esta OS?")) return;
-    const lista: OS[] = JSON.parse(localStorage.getItem("os_list") || "[]");
-    salvarLista(lista.filter(o => o.id !== os.id));
+    saveOS(lista);
     navigate("/");
   }
 
+  function apagarOS() {
+    if (!os) return;
+    if (!confirm("Deseja realmente apagar esta OS?")) return;
+
+    const lista = loadOS().filter(o => o.numero !== os.numero);
+    saveOS(lista);
+    navigate("/");
+  }
+
+  if (!os) return null;
+
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-bold">OS #{os.numero}</h1>
+    <div className="p-6 max-w-xl space-y-4">
+      <h1 className="text-xl font-bold">Detalhes da OS</h1>
 
-      <p className="text-sm text-gray-600">Status: {os.status}</p>
+      <div className="space-y-1 text-sm">
+        <p><b>OS:</b> {os.numero}</p>
+        <p><b>Cliente:</b> {os.cliente}</p>
+        <p><b>Telefone:</b> {os.telefone}</p>
+        <p><b>Equipamento:</b> {os.equipamento}</p>
+        <p><b>Problema:</b> {os.problema}</p>
+        <p><b>Solução:</b> {os.solucao}</p>
+        <p><b>Técnico:</b> {os.tecnico}</p>
+        <p><b>Status:</b> {os.status}</p>
+        <p>
+          <b>Aberta em:</b>{" "}
+          {new Date(os.dataAbertura).toLocaleString()}
+        </p>
 
-      {/* FORMULÁRIOS DE GARANTIA */}
-      {modoGarantia === "envio" && (
-        <Box titulo="Enviar para garantia">
-          <input className="input" placeholder="NF-e" value={nfe} onChange={e => setNfe(e.target.value)} />
-          <input type="datetime-local" className="input" value={dataEnvio} onChange={e => setDataEnvio(e.target.value)} />
-          <Botao onClick={enviarGarantia}>Confirmar envio</Botao>
-        </Box>
+        {os.dataConclusao && (
+          <p>
+            <b>Concluída em:</b>{" "}
+            {new Date(os.dataConclusao).toLocaleString()}
+          </p>
+        )}
+      </div>
+
+      {/* 🔧 BLOCO DE GARANTIA */}
+      {os.garantiaStatus !== "NAO" && (
+        <div className="border rounded p-3 bg-purple-50">
+          <p className="font-semibold text-purple-700">
+            Garantia
+          </p>
+          <p className="text-sm">
+            <b>Status:</b> {os.garantiaStatus}
+          </p>
+          <p className="text-sm">
+            <b>Empresa / RMA:</b> {os.empresaRMA}
+          </p>
+          <p className="text-sm">
+            <b>NF-e:</b> {os.nfNumero}
+          </p>
+        </div>
       )}
 
-      {modoGarantia === "retorno" && (
-        <Box titulo="Retorno da garantia">
-          <input type="datetime-local" className="input" value={dataRetorno} onChange={e => setDataRetorno(e.target.value)} />
-          <Botao onClick={retornoGarantia}>Confirmar retorno</Botao>
-        </Box>
-      )}
-
-      <div className="flex flex-wrap gap-2 pt-4">
-        {!editando && (
-          <button onClick={() => setEditando(true)} className="border px-4 py-2 rounded">
-            Editar
+      {/* 🔘 AÇÕES */}
+      <div className="flex flex-wrap gap-2 pt-2">
+        {os.status !== "CONCLUIDA" && (
+          <button
+            onClick={concluirOS}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Concluir OS
           </button>
         )}
 
-        {editando && (
-          <button onClick={salvarAlteracoes} className="bg-blue-600 text-white px-4 py-2 rounded">
-            Salvar mudanças
+        {os.garantiaStatus === "NAO" && (
+          <button
+            onClick={() => navigate(`/garantia/${os.numero}`)}
+            className="bg-purple-600 text-white px-4 py-2 rounded"
+          >
+            Enviar p/ Garantia
           </button>
         )}
 
-        {os.status === "Em andamento" && (
-          <button onClick={() => setModoGarantia("envio")} className="bg-yellow-500 text-white px-4 py-2 rounded">
-            Enviar para garantia
-          </button>
-        )}
-
-        {os.status === "Em garantia" && (
-          <button onClick={() => setModoGarantia("retorno")} className="bg-purple-600 text-white px-4 py-2 rounded">
-            Registrar retorno
-          </button>
-        )}
-
-        <button onClick={apagarOS} className="bg-red-600 text-white px-4 py-2 rounded">
-          Apagar
+        <button
+          onClick={apagarOS}
+          className="bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Apagar OS
         </button>
 
-        <button onClick={() => navigate("/")} className="border px-4 py-2 rounded">
+        <button
+          onClick={() => navigate(-1)}
+          className="bg-gray-300 px-4 py-2 rounded"
+        >
           Voltar
         </button>
       </div>
     </div>
-  );
-}
-
-function Box({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="border p-4 rounded space-y-2 bg-gray-50">
-      <h2 className="font-semibold">{titulo}</h2>
-      {children}
-    </div>
-  );
-}
-
-function Botao({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="bg-blue-600 text-white px-4 py-2 rounded">
-      {children}
-    </button>
   );
 }

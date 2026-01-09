@@ -1,13 +1,12 @@
-export type StatusOS =
-  | "Em andamento"
-  | "Em garantia"
-  | "Aguardando retirada"
-  | "Concluída";
+export type GarantiaStatus =
+  | "NAO"
+  | "EM_GARANTIA"
+  | "AGUARDANDO_RETIRADA";
+
+export type OSStatus = "EM_ANDAMENTO" | "CONCLUIDA";
 
 export interface OS {
-  id: number;
   numero: string;
-
   cliente: string;
   telefone: string;
   equipamento: string;
@@ -15,17 +14,13 @@ export interface OS {
   solucao: string;
   tecnico: string;
 
-  status: StatusOS;
+  status: OSStatus;
+  garantiaStatus: GarantiaStatus;
 
-  criadaEm: string;   // quando entrou no sistema
-  abertaEm: string;   // quando começou de verdade
-  prazo?: string;     // prazo combinado
-  conclusao?: string;
+  dataAbertura: string;
+  dataConclusao?: string;
 
-  garantia?: {
-    dataEnvio: string;
-    dataRetorno?: string;
-    nfe?: string;
-    fotos?: string[];
-  };
+  // 🔹 GARANTIA
+  nfNumero?: string;
+  empresaRMA?: string;
 }

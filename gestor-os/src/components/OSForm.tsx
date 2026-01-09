@@ -21,8 +21,8 @@ export default function OSForm() {
     const novaOS: OS = {
       id: Date.now(),
       ...form,
-      abertura: new Date().toISOString(),
-      status: "Em andamento",
+      dataAbertura: new Date().toISOString(),
+      status: "EM_ANDAMENTO",
     };
 
     localStorage.setItem("os_list", JSON.stringify([...lista, novaOS]));
