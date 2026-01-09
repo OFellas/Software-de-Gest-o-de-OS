@@ -27,7 +27,7 @@ export default function EnviarGarantia() {
 
     if (!encontrada) {
       alert("OS não encontrada");
-      navigate("/");
+      navigate("/", { replace: true }); // volta direto para Dashboard se não encontrar
       return;
     }
 
@@ -57,7 +57,9 @@ export default function EnviarGarantia() {
     );
 
     saveOS(listaAtualizada);
-    navigate("/garantia");
+
+    // 🔹 navegar direto para Dashboard, não para Garantia
+    navigate("/", { replace: true });
   }
 
   if (!os) return null;
@@ -93,7 +95,7 @@ export default function EnviarGarantia() {
         </button>
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/", { replace: true })} // 🔹 sempre volta para Dashboard
           className="bg-gray-300 px-4 py-2 rounded"
         >
           Cancelar
